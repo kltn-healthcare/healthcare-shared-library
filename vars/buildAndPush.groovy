@@ -1,11 +1,11 @@
-def call(String changedServices, String imageTag, String registry, String owner) {
+def call(String changedServices, String imageTag) {
   if (!changedServices?.trim()) {
     return
   }
 
-  withCredentials([string(credentialsId: "${GITEA_CREDS_ID}", variable: 'TOKEN')]) {
+  withCredentials([string(credentialsId: "${env.GITEA_CREDS_ID}", variable: 'TOKEN')]) {
     sh """
-      echo "\$TOKEN" | docker login ${registry} \
+      echo "\$TOKEN" | docker login ${env.GITEA_REGISTRY} \
         --username admin --password-stdin
     """
   }
@@ -16,7 +16,7 @@ def call(String changedServices, String imageTag, String registry, String owner)
       return
     }
 
-    def imageName = "${registry}/${owner}/healthcare-${serviceName}"
+    def imageName = "${env.GITEA_REGISTRY}/${env.GITEA_OWNER}/healthcare-${serviceName}"
     if (serviceName == 'frontend') {
       sh "docker build -f frontend/Dockerfile -t ${imageName}:${imageTag} frontend"
     } else {
