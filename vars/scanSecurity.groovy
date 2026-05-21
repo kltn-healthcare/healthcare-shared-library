@@ -3,7 +3,7 @@ def call(String changedServices, String jobBaseName) {
     return
   }
 
-  def scannerHome = tool SONAR_SCANNER
+  def scannerHome = tool env.SONAR_SCANNER
 
   changedServices.split(',').each { rawService ->
     def serviceName = rawService.trim()
@@ -14,7 +14,7 @@ def call(String changedServices, String jobBaseName) {
     def sourceDir = serviceName == 'frontend' ? './frontend' : './backend'
     def dockerfileDir = serviceName == 'frontend' ? './frontend/Dockerfile' : './backend/Dockerfile'
 
-    withSonarQubeEnv(SONAR_SERVER) {
+    withSonarQubeEnv(env.SONAR_SERVER) {
       sh """
         ${scannerHome}/bin/sonar-scanner \
           -Dsonar.projectKey=${jobBaseName}-${serviceName} \
