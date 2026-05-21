@@ -32,6 +32,8 @@ def call(String changedServices, String jobBaseName) {
       docker run --rm \
         -v /var/run/docker.sock:/var/run/docker.sock \
         -v \${HOME}/.cache/trivy:/root/.cache/trivy \
+        -v \$(pwd):/workspace \
+        -w /workspace \
         aquasec/trivy:0.69.3 fs \
           --scanners vuln,secret \
           --severity HIGH,CRITICAL \
