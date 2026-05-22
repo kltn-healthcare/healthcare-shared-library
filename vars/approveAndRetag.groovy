@@ -113,7 +113,7 @@ def call(Map config) {
                 curl --silent --show-error --fail-with-body \\
                   -X POST '${config.giteaApiUrl}/repos/${config.giteaOwner}/${config.giteaRepo}/releases' \\
                   -H 'accept: application/json' \\
-                  -H 'Authorization: token \$SECRET_TOKEN' \\
+                  -H "Authorization: token \$SECRET_TOKEN" \\
                   -H 'Content-Type: application/json' \\
                   --data @gitea-release.json
             """
