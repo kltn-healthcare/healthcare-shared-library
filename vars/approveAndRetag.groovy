@@ -19,12 +19,23 @@ def call(Map config) {
     def servicesLabel = servicesList.join(',')
     def approvalUrl = config.runDisplayUrl ? "${config.runDisplayUrl}/input" : 'N/A'
 
-    // 2. Gửi Email
-    mail(
-        to: config.adminEmail,
-        subject: "Jenkins Approval Required: ${servicesLabel}",
-        body: "Vui lòng phê duyệt đưa các service [${servicesLabel}] lên Production.\nMã Commit hiện tại: ${config.commitTag}\n\n👉 Bấm vào đây để duyệt: ${approvalUrl}"
-    )
+    if (config.adminEmail) {
+        try {
+            mail(
+                to: config.adminEmail,
+                subject: "Jenkins Approval Required: ${servicesLabel}",
+                body: "Vui lòng phê duyệt đưa các service [${servicesLabel}] lên Production.\nMã Commit hiện tại: ${config.commitTag}\n\n👉 Bấm vào đây để duyệt: ${approvalUrl}"
+            )
+            echo "📧 Đã gửi email thông báo phê duyệt đến: ${config.adminEmail}"
+        } catch (Exception e) {
+            // Bắt lỗi không làm sập pipeline nếu Jenkins chưa cấu hình SMTP
+            echo "⚠️ Cảnh báo: Không thể gửi email thông báo (Có thể Jenkins chưa cấu hình SMTP). Lỗi chi tiết: ${e.message}"
+            echo "👉 Quản trị viên vui lòng truy cập trực tiếp link sau để duyệt: ${approvalUrl}"
+        }
+    } else {
+        echo "ℹ️ Không có adminEmail được cung cấp, bỏ qua bước gửi email."
+        echo "👉 Quản trị viên vui lòng truy cập trực tiếp link sau để duyệt: ${approvalUrl}"
+    }
 
     // 3. TẠO Ô NHẬP ĐỘNG
     def inputParams = []
