@@ -10,18 +10,29 @@ def call(String changedServices, String imageTag) {
     """
   }
 
+  def failedServices = []
+
   changedServices.split(',').each { rawService ->
     def serviceName = rawService.trim()
     if (!serviceName) {
       return
     }
 
-    def imageName = "${env.GITEA_REGISTRY}/${env.GITEA_OWNER}/healthcare-${serviceName}"
-    if (serviceName == 'frontend') {
-      sh "docker build -f frontend/Dockerfile -t ${imageName}:${imageTag} frontend"
-    } else {
-      sh "docker build -f backend/Dockerfile --build-arg APP_NAME=${serviceName} -t ${imageName}:${imageTag} backend"
+    try {
+      def imageName = "${env.GITEA_REGISTRY}/${env.GITEA_OWNER}/healthcare-${serviceName}"
+      if (serviceName == 'frontend') {
+        sh "docker build -f frontend/Dockerfile -t ${imageName}:${imageTag} frontend"
+      } else {
+        sh "docker build -f backend/Dockerfile --build-arg APP_NAME=${serviceName} -t ${imageName}:${imageTag} backend"
+      }
+      sh "docker push ${imageName}:${imageTag}"
+    } catch (Exception e) {
+      echo "Build or push failed for ${serviceName}: ${e.message}"
+      failedServices.add(serviceName)
     }
-    sh "docker push ${imageName}:${imageTag}"
+  }
+
+  if (failedServices) {
+    error "Build failed for: ${failedServices.join(', ')}"
   }
 }
