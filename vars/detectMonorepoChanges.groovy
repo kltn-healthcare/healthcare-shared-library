@@ -1,29 +1,41 @@
-def call(String baseCommit, String currentCommit) {
+def call(String baseCommit, String currentCommit, String rawChangedFiles = null) {
   def allServices = ['frontend', 'auth', 'backend', 'admin']
   def services = [] as LinkedHashSet
 
-  // 1. Kiểm tra đầu vào. Nếu Jenkinsfile không truyền được commit (rỗng), 
-  // mặc định build lại toàn bộ để đảm bảo an toàn (không sót service).
-  if (!currentCommit) {
-    error "Lỗi hệ thống: currentCommit bị rỗng. Dừng pipeline."
+  List<String> changedFiles = []
+
+  if (rawChangedFiles != null) {
+    // ── Chế độ 1: File list truyền thẳng vào (dùng cho shallow clone + diff-tree) ──
+    // Jenkinsfile.release đã tính sẵn danh sách file, không cần git diff
+    if (!rawChangedFiles.trim()) {
+      echo "rawChangedFiles rỗng → không có thay đổi."
+      return ""
+    }
+    changedFiles = rawChangedFiles.split('\n').collect { it.trim() }.findAll { it }
+    echo "Chế độ: rawChangedFiles (${changedFiles.size()} files)"
+
+  } else {
+    // ── Chế độ 2: Tính git diff từ 2 commit (dùng cho Jenkinsfile CI thông thường) ──
+    if (!currentCommit) {
+      error "currentCommit bị rỗng. Dừng pipeline."
+    }
+
+    if (!baseCommit) {
+      echo "Không có baseCommit → Fail-safe: build toàn bộ services."
+      services.addAll(allServices)
+      return services.join(',')
+    }
+
+    def diffOutput = sh(
+      script: "git diff --name-only ${baseCommit} ${currentCommit}",
+      returnStdout: true
+    ).trim()
+
+    changedFiles = diffOutput ? diffOutput.split('\n').collect { it.trim() }.findAll { it } : []
+    echo "Chế độ: git diff (${changedFiles.size()} files thay đổi)"
   }
 
-  if (!baseCommit) {
-    echo "Cảnh báo: Không tìm thấy baseCommit để so sánh git diff."
-    echo "Áp dụng cơ chế Fail-safe: Trigger build TOÀN BỘ services."
-    services.addAll(allServices)
-    return services.join(',')
-  }
-
-  // 2. Chạy git diff dựa trên tham số truyền vào
-  def diffOutput = sh(
-    script: "git diff --name-only ${baseCommit} ${currentCommit}",
-    returnStdout: true
-  ).trim()
-  
-  def changedFiles = diffOutput ? diffOutput.split('\n') as List : []
-
-  // 3. Phân tích các file thay đổi
+  // ── Parse file list → service list (logic dùng chung cho cả 2 chế độ) ──
   changedFiles.each { filePath ->
     if (filePath.startsWith('frontend/')) {
       services.add('frontend')
@@ -41,16 +53,16 @@ def call(String baseCommit, String currentCommit) {
       services.add('admin')
     }
 
-    // Các thay đổi ở core/shared/config của backend sẽ trigger build cả 3 microservices
+    // Thay đổi shared/core của backend → trigger build cả 3 service
     if (
-      filePath.startsWith('backend/src/') ||
-      filePath.startsWith('backend/libs/') ||
-      filePath.startsWith('backend/prisma/') ||
-      filePath == 'backend/Dockerfile' ||
-      filePath == 'backend/package.json' ||
-      filePath == 'backend/pnpm-lock.yaml' ||
-      filePath == 'backend/tsconfig.json' ||
-      filePath == 'backend/tsconfig.build.json' ||
+      filePath.startsWith('backend/src/')        ||
+      filePath.startsWith('backend/libs/')       ||
+      filePath.startsWith('backend/prisma/')     ||
+      filePath == 'backend/Dockerfile'           ||
+      filePath == 'backend/package.json'         ||
+      filePath == 'backend/pnpm-lock.yaml'       ||
+      filePath == 'backend/tsconfig.json'        ||
+      filePath == 'backend/tsconfig.build.json'  ||
       filePath == 'backend/nest-cli.json'
     ) {
       services.addAll(['auth', 'backend', 'admin'])
@@ -58,7 +70,7 @@ def call(String baseCommit, String currentCommit) {
   }
 
   if (services.isEmpty()) {
-    echo 'No deployable service changes detected.'
+    echo "No deployable service changes detected."
   }
 
   return services.join(',')
