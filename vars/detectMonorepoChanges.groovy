@@ -2,28 +2,28 @@ def call(String baseCommit, String currentCommit) {
   def allServices = ['frontend', 'auth', 'backend', 'admin']
   def services = [] as LinkedHashSet
 
-  def resolvedBase = baseCommit ?: env.GIT_PREVIOUS_SUCCESSFUL_COMMIT ?: env.GIT_PREVIOUS_COMMIT
-  def resolvedCurrent = currentCommit ?: env.GIT_COMMIT
-
-  if (!resolvedBase) {
-    try {
-      resolvedBase = sh(script: 'git rev-parse HEAD~1', returnStdout: true).trim()
-    } catch (ignored) {
-      resolvedBase = null
-    }
+  // 1. Kiểm tra đầu vào. Nếu Jenkinsfile không truyền được commit (rỗng), 
+  // mặc định build lại toàn bộ để đảm bảo an toàn (không sót service).
+  if (!currentCommit) {
+    error "Lỗi hệ thống: currentCommit bị rỗng. Dừng pipeline."
   }
 
-  if (!resolvedBase || !resolvedCurrent) {
+  if (!baseCommit) {
+    echo "Cảnh báo: Không tìm thấy baseCommit để so sánh git diff."
+    echo "Áp dụng cơ chế Fail-safe: Trigger build TOÀN BỘ services."
     services.addAll(allServices)
     return services.join(',')
   }
 
+  // 2. Chạy git diff dựa trên tham số truyền vào
   def diffOutput = sh(
-    script: "git diff --name-only ${resolvedBase} ${resolvedCurrent}",
+    script: "git diff --name-only ${baseCommit} ${currentCommit}",
     returnStdout: true
   ).trim()
+  
   def changedFiles = diffOutput ? diffOutput.split('\n') as List : []
 
+  // 3. Phân tích các file thay đổi
   changedFiles.each { filePath ->
     if (filePath.startsWith('frontend/')) {
       services.add('frontend')
@@ -41,6 +41,7 @@ def call(String baseCommit, String currentCommit) {
       services.add('admin')
     }
 
+    // Các thay đổi ở core/shared/config của backend sẽ trigger build cả 3 microservices
     if (
       filePath.startsWith('backend/src/') ||
       filePath.startsWith('backend/libs/') ||
