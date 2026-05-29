@@ -5,23 +5,23 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
   List<String> changedFiles = []
 
   if (rawChangedFiles != null) {
-    // ── Chế độ 1: File list truyền thẳng vào (dùng cho shallow clone + diff-tree) ──
-    // Jenkinsfile.release đã tính sẵn danh sách file, không cần git diff
+    // Mode 1: file list provided directly (used for shallow clone + diff-tree).
+    // Jenkinsfile.release already computed the file list, no git diff needed.
     if (!rawChangedFiles.trim()) {
-      echo "rawChangedFiles rỗng → không có thay đổi."
+      echo "rawChangedFiles is empty -> no changes."
       return ""
     }
     changedFiles = rawChangedFiles.split('\n').collect { it.trim() }.findAll { it }
-    echo "Chế độ: rawChangedFiles (${changedFiles.size()} files)"
+    echo "Mode: rawChangedFiles (${changedFiles.size()} files)"
 
   } else {
-    // ── Chế độ 2: Tính git diff từ 2 commit (dùng cho Jenkinsfile CI thông thường) ──
+    // Mode 2: compute git diff between two commits (used for standard Jenkinsfile CI).
     if (!currentCommit) {
-      error "currentCommit bị rỗng. Dừng pipeline."
+      error "currentCommit is empty. Stopping pipeline."
     }
 
     if (!baseCommit) {
-      echo "Không có baseCommit → Fail-safe: build toàn bộ services."
+      echo "No baseCommit -> fail-safe: build all services."
       services.addAll(allServices)
       return services.join(',')
     }
@@ -32,10 +32,10 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
     ).trim()
 
     changedFiles = diffOutput ? diffOutput.split('\n').collect { it.trim() }.findAll { it } : []
-    echo "Chế độ: git diff (${changedFiles.size()} files thay đổi)"
+    echo "Mode: git diff (${changedFiles.size()} files changed)"
   }
 
-  // ── Parse file list → service list (logic dùng chung cho cả 2 chế độ) ──
+  // Parse file list into service list (shared logic for both modes).
   changedFiles.each { filePath ->
     if (filePath.startsWith('frontend/')) {
       services.add('frontend')
@@ -53,7 +53,7 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
       services.add('admin')
     }
 
-    // Thay đổi shared/core của backend → trigger build cả 3 service
+    // Backend shared/core changes -> trigger build for all three services.
     if (
       filePath.startsWith('backend/src/')        ||
       filePath.startsWith('backend/libs/')       ||
