@@ -26,6 +26,29 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
       return services.join(',')
     }
 
+    def exists = sh(
+      script: "git cat-file -e ${baseCommit} 2>/dev/null && echo yes || echo no",
+      returnStdout: true
+    ).trim()
+    if (exists == 'no') {
+      echo "baseCommit ${baseCommit} not in local repo → fetching more history..."
+
+      sh "git fetch --deepen=50 origin 2>/dev/null || true"
+
+      def existsAfterFetch = sh(
+        script: "git cat-file -e ${baseCommit} 2>/dev/null && echo yes || echo no",
+        returnStdout: true
+      ).trim()
+
+      if (existsAfterFetch == 'no') {
+        echo " Still not found after fetch → Fail-safe: rebuild all services."
+        services.addAll(allServices)
+        return services.join(',')
+      }
+
+      echo "Found after fetch → continuing diff."
+    }
+
     def diffOutput = sh(
       script: "git diff --name-only ${baseCommit} ${currentCommit}",
       returnStdout: true
