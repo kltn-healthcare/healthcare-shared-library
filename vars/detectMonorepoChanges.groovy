@@ -33,7 +33,7 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
     if (exists == 'no') {
       echo "baseCommit ${baseCommit} not in local repo → fetching more history..."
 
-      sh "git fetch --deepen=50 origin 2>/dev/null || true"
+      sh "git fetch --deepen=100 origin 2>/dev/null || true"
 
       def existsAfterFetch = sh(
         script: "git cat-file -e ${baseCommit} 2>/dev/null && echo yes || echo no",
