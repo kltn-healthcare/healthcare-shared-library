@@ -22,10 +22,18 @@ def call(String changedServices, String jobBaseName) {
       """
     }
 
+    // Require Quality Gate to pass, abort pipeline if it fails
+    timeout(time: 5, unit: 'MINUTES') {
+      def qg = waitForQualityGate()
+      if (qg.status != 'OK') {
+        error "Pipeline aborted due to SonarQube Quality Gate failure: ${qg.status}"
+      }
+    }
+
     sh """
       docker run --rm -i hadolint/hadolint:v2.14.0 hadolint \
         --failure-threshold style \
-        - < ${dockerfileDir} || true
+        - < ${dockerfileDir} 
     """
 
     sh """
@@ -37,7 +45,7 @@ def call(String changedServices, String jobBaseName) {
         aquasec/trivy:0.69.3 fs \
           --scanners vuln,secret \
           --severity HIGH,CRITICAL \
-          --exit-code 0 \
+          --exit-code 1 \
           --no-progress \
           ${sourceDir}
     """
