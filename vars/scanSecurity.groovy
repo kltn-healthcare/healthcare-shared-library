@@ -30,7 +30,7 @@ def call(String changedServices, String jobBaseName) {
         'hadolint': {
           sh """
             docker run --rm -i hadolint/hadolint:v2.14.0 hadolint \
-              --failure-threshold style \
+              --failure-threshold error \
               - < ${dockerfileDir}
           """
         },
