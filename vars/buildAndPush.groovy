@@ -11,6 +11,12 @@ def call(String changedServices, String imageTag) {
   }
 
   def failedServices = []
+  def imageNameMap = [
+    'frontend': 'frontend',
+    'auth'    : 'identity',
+    'backend' : 'appointment',
+    'admin'   : 'admin'
+  ]
 
   changedServices.split(',').each { rawService ->
     def serviceName = rawService.trim()
@@ -19,7 +25,8 @@ def call(String changedServices, String imageTag) {
     }
 
     try {
-      def imageName = "${env.GITEA_REGISTRY}/${env.GITEA_OWNER}/healthcare-${serviceName}"
+      def imageServiceName = imageNameMap[serviceName] ?: serviceName
+      def imageName = "${env.GITEA_REGISTRY}/${env.GITEA_OWNER}/healthcare-${imageServiceName}"
       if (serviceName == 'frontend') {
         sh "docker build -f frontend/Dockerfile -t ${imageName}:${imageTag} frontend"
       } else {

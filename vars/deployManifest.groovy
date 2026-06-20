@@ -41,6 +41,13 @@ def call(Map config) {
         }
     }
 
+    def imageNameMap = config.imageNameMap ?: [
+        'frontend': 'frontend',
+        'auth'    : 'identity',
+        'backend' : 'appointment',
+        'admin'   : 'admin'
+    ]
+
     // 5. Update the Kustomize manifest for each service.
     servicesList.each { service ->
         // Flexible path: prefer serviceFolderMap if provided; otherwise use the service name.
@@ -54,7 +61,8 @@ def call(Map config) {
         }
 
         // Flexible repo name (no hardcoded 'healthcare-').
-        def imageName = "${config.giteaRegistry}/${config.giteaOwner}/${config.giteaRepo}-${service}"
+        def imageServiceName = imageNameMap[service] ?: service
+        def imageName = "${config.giteaRegistry}/${config.giteaOwner}/${config.giteaRepo}-${imageServiceName}"
         
         // Select the correct tag for the service.
         def tagToUpdate = isTagMap ? (parsedTagMap[service] ?: 'latest') : config.imageTag
