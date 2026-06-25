@@ -13,8 +13,8 @@ def call(String changedServices, String imageTag) {
   def failedServices = []
   def imageNameMap = [
     'frontend': 'frontend',
-    'auth'    : 'identity',
-    'backend' : 'appointment',
+    'identity': 'identity',
+    'appointment': 'appointment',
     'admin'   : 'admin'
   ]
 

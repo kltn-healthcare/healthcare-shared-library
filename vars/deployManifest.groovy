@@ -43,8 +43,8 @@ def call(Map config) {
 
     def imageNameMap = config.imageNameMap ?: [
         'frontend': 'frontend',
-        'auth'    : 'identity',
-        'backend' : 'appointment',
+        'identity': 'identity',
+        'appointment': 'appointment',
         'admin'   : 'admin'
     ]
 

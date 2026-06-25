@@ -1,5 +1,5 @@
 def call(String baseCommit, String currentCommit, String rawChangedFiles = null) {
-  def allServices = ['frontend', 'auth', 'backend', 'admin']
+  def allServices = ['frontend', 'identity', 'appointment', 'admin']
   def services = [] as LinkedHashSet
 
   List<String> changedFiles = []
@@ -65,11 +65,11 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
     }
 
     if (filePath.startsWith('backend/apps/identity/') || filePath.startsWith('backend/apps/auth/')) {
-      services.add('auth')
+      services.add('identity')
     }
 
     if (filePath.startsWith('backend/apps/appointment/') || filePath.startsWith('backend/apps/backend/')) {
-      services.add('backend')
+      services.add('appointment')
     }
 
     if (filePath.startsWith('backend/apps/admin/')) {
@@ -88,7 +88,7 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
       filePath == 'backend/tsconfig.build.json'  ||
       filePath == 'backend/nest-cli.json'
     ) {
-      services.addAll(['auth', 'backend', 'admin'])
+      services.addAll(['identity', 'appointment', 'admin'])
     }
   }
 
