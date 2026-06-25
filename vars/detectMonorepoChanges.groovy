@@ -64,11 +64,11 @@ def call(String baseCommit, String currentCommit, String rawChangedFiles = null)
       services.add('frontend')
     }
 
-    if (filePath.startsWith('backend/apps/auth/')) {
+    if (filePath.startsWith('backend/apps/identity/') || filePath.startsWith('backend/apps/auth/')) {
       services.add('auth')
     }
 
-    if (filePath.startsWith('backend/apps/backend/')) {
+    if (filePath.startsWith('backend/apps/appointment/') || filePath.startsWith('backend/apps/backend/')) {
       services.add('backend')
     }
 
